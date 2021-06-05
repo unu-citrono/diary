@@ -9,11 +9,12 @@ var jwt = require('jsonwebtoken')
 var app  = express()
 
 app.use('/avatar', express.static('./upload/avatar'))
+app.use('/diaryUpload', express.static('./upload/diary'))
 
 // 捕获登录状态
 app.use(function(req, res, next) {
   var url = req.url
-  var urlArr = ['/user/login', '/user/regist']
+  var urlArr = ['/user/login', '/user/regist', '/diary/allDiary', '/avatar', '/user/allUserCount', '/diary/allDiaryCount']
   if (urlArr.indexOf(url) >= 0) {
     next()
     return false
@@ -23,6 +24,7 @@ app.use(function(req, res, next) {
   var secretOrPrivateKey = 'my_token'
   jwt.verify(token, secretOrPrivateKey, function (err, decode) {
     if (err) { // 当token过期，或这是一个伪造的token，或这是无效的token时会触发此逻辑
+      console.log(url)
       res.json({
         status: '401',
         msg: err.message

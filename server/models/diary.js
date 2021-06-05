@@ -4,6 +4,7 @@ var Schema = mongoose.Schema
 var diarySchema = new Schema({
   'title': String,
   'content': String,
+  'mood': Number,
   'viewLimit': String,
   'diaryBook': String,
   'createTime': String,

@@ -77,7 +77,7 @@ router.post('/login', function(req, res, next) {
 				msg: err.message
 			})
 		} else{
-			console.log(result)
+			// console.log(result)
 				// 结果不为空
 				if(result){
 					const token = jwt.sign({
@@ -106,9 +106,16 @@ router.post('/login', function(req, res, next) {
 
 // 获取用户信息
 router.get('/info', function(req, res, next) {
-	var param = {
-		'_id': mongoose.Types.ObjectId(process.env.userId)
+	if(req.query.userId) {
+		var param = {
+			'_id': mongoose.Types.ObjectId(req.query.userId) 
+		}
+	} else {
+		var param = {
+			'_id': mongoose.Types.ObjectId(process.env.userId) 
+		}
 	}
+	
 	User.findOne(param, function(err, result) {
 		if(err) {
 			res.json({
@@ -125,6 +132,23 @@ router.get('/info', function(req, res, next) {
 			}
 		}
 	})
+})
+
+// 查询所有用户数
+router.get('/allUserCount', function(req, res, next) {
+  User.countDocuments(function(err, result) {
+    if (err) {
+      res.json({
+        status: "500",
+        msg: err.message
+      })
+    } else {
+      res.json({
+        status: '200',
+        result: result
+      })
+    }
+  })
 })
 
 // 修改用户密码
@@ -165,7 +189,6 @@ router.put('/changInfo', function(req, res, next) {
 			})
 		} else {
 			if(result) {
-				console.log(result)
 				res.json({
 					status: "200",
 					result: result
@@ -233,6 +256,246 @@ router.get('/diaryBooks', function(req, res, next) {
 			}
 		}
 	})
+})
+
+// 新建日记本
+router.put('/addBook', function(req, res, next){
+	let param = {
+		'_id': mongoose.Types.ObjectId(process.env.userId)
+	}
+	let newBook = {
+		'name': req.body.name
+	}
+	User.updateOne(param, {$push: {diaryBooks: newBook}}, function(err, result) {
+		if(err){
+			res.json({
+					status: "500",
+					msg: err.message
+				})
+		} else{
+			res.json({
+				status: '200',
+				message: 'success'
+			})
+		}
+	})
+})
+
+// 编辑日记本
+router.put('/editBook', function(req, res, next) {
+	let param = {
+		'_id': mongoose.Types.ObjectId(process.env.userId),
+		'diaryBooks.name': req.body.oldName
+	}
+	User.updateOne(param, {$set: {
+		'diaryBooks.$.name': req.body.newName
+	}}, function(err, result) {
+		if(err){
+			res.json({
+				status: "500",
+				msg: err.message
+			})
+		} else{
+			res.json({
+				status: '200',
+				message: 'success'
+			})
+		}
+	})
+})
+
+// 删除日记本
+router.put('/deleteBook', function(req, res, next) {
+	let param = {
+		'_id': mongoose.Types.ObjectId(process.env.userId),
+		// 'diaryBooks.name': req.body.name
+	}
+	User.updateOne(param, {$pull: {
+		'diaryBooks': {'name': req.body.name}
+	}}, function(err, result) {
+		if(err){
+			res.json({
+				status: "500",
+				msg: err.message
+			})
+		} else{
+			res.json({
+				status: '200',
+				message: 'success'
+			})
+		}
+	})
+})
+
+// 任务清单
+// 获取任务清单
+router.get('/taskList', function(req, res, next) {
+	let userId = req.query.userId ? req.query.userId : process.env.userId
+	let param = {
+    _id: mongoose.Types.ObjectId(userId)
+	}
+	if(req.query.status) {
+		param.status = req.query.status
+	}
+  
+	User.findOne(param).sort({'deadline': 1}).exec(function(err, result) {
+		if(err){
+			res.json({
+				status: "500",
+				msg: err.message
+			})
+		} else{
+			res.json({
+				status: "200",
+				msg: 'success',
+				result: result.task
+			})
+		}
+	})
+})
+
+// 添加任务清单
+router.put('/addTask', function(req, res, next) {
+	let param = {
+		'_id': mongoose.Types.ObjectId(process.env.userId)
+	}
+	let newTask = {
+		content: req.body.content,
+		deadline: req.body.deadline,
+		status: '0'
+	}
+	User.updateOne(param, {$push: {task: newTask}}, function(err, result) {
+		if(err){
+			res.json({
+					status: "500",
+					msg: err.message
+				})
+		} else{
+			res.json({
+				status: '200',
+				message: 'success'
+			})
+		}
+	})
+})
+
+// 修改任务内容
+router.put('/modifyTask', function(req, res, next) {
+	let param = {
+		'_id': mongoose.Types.ObjectId(process.env.userId),
+		'task._id': req.body._id
+	}
+	User.updateOne(param, {$set: {
+		'task.$.content': req.body.content
+	}}, function(err, result) {
+		if(err){
+			res.json({
+				status: "500",
+				msg: err.message
+			})
+		} else{
+			console.log(result)
+			res.json({
+				status: '200',
+				message: 'success'
+			})
+		}
+	})
+})
+
+// 完成任务
+router.put('/finishTask', function(req, res, next) {
+	let param = {
+		'_id': mongoose.Types.ObjectId(process.env.userId),
+		'task._id': req.body._id
+	}
+	User.updateOne(param, {$set: {
+		'task.$.status': '1'
+	}}, function(err, result) {
+		if(err){
+			res.json({
+				status: "500",
+				msg: err.message
+			})
+		} else{
+			console.log(result)
+			res.json({
+				status: '200',
+				message: 'success'
+			})
+		}
+	})
+})
+
+// 删除任务
+router.put('/delTask', function(req, res, next) {
+	let param = {
+		_id: mongoose.Types.ObjectId(process.env.userId)
+	}
+	let task = {
+		_id: mongoose.Types.ObjectId(req.body._id)
+	}
+	User.updateOne(param, {$pull: {'task': task}}, function(err, result) {
+		if(err) {
+			res.json({
+				status: "500",
+				msg: err.message
+			})
+		} else {
+			res.json({
+				status: '200',
+				message: 'success'
+			})
+		}
+	})
+})
+
+// 关注用户
+// 关注新用户
+router.put('/addFollowUser', function(req, res, next) {
+	let param = {
+		'_id': mongoose.Types.ObjectId(process.env.userId)
+	}
+	let userId = req.body.userId
+	User.updateOne(param, {$push: {followingUsers: userId}}, function(err, result) {
+		if(err){
+			res.json({
+				status: "500",
+				msg: err.message
+			})
+		} else{
+			res.json({
+				status: '200',
+				message: 'success'
+			})
+		}
+	})
+})
+
+// 查询关注用户
+router.get('/followingUsers', function(req, res, next) {
+	let param = {
+		'_id': mongoose.Types.ObjectId(process.env.userId)
+	}
+	User.findOne(param, function(req, res, next) {
+		if(err){
+			res.json({
+				status: "500",
+				msg: err.message
+			})
+		} else{
+			res.json({
+				status: '200',
+				message: 'success',
+				result: result
+			})
+		}
+	})
+})
+
+// 取消关注
+router.put('/cancelFollow', function(req, res, next) {
+
 })
 
 module.exports = router

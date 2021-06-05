@@ -4,16 +4,16 @@
       <router-link to="/">Home</router-link> |
       <router-link to="/about">About</router-link>
     </div> -->
-    <myHeader></myHeader>
+    <my-header></my-header>
     
     <router-view/>
   </div>
 </template>
 
 <script>
-import myHeader from './components/header.vue'
+import MyHeader from './components/header.vue'
 export default {
-  components: { myHeader },
+  components: { MyHeader },
   name: 'App',
     provide () {    //父组件中通过provide来提供变量，在子组件中通过inject来注入变量。                                             
       return {
@@ -22,8 +22,12 @@ export default {
     },
     data() {
       return{
+        isUserHome: this.$route.path  == '/home',
         isRouterAlive: true                    //控制视图是否显示的变量
       }
+    },
+    mounted() {
+      // console.log( this.$route.path  == '/home')
     },
     methods: {
       reload () {

@@ -1,19 +1,24 @@
 <template>
   <div>
-    <editor></editor>
+    <edit-form :diary='diary'></edit-form>
   </div>
 </template>
 
 <script>
-import Editor from '@/components/Editor.vue'
+import EditForm from '@/components/EditForm.vue'
+
 export default {
+  
   components: {
-    Editor
+    EditForm
   },
   data () {
     return {
-
+      diary: {}
     }
+  },
+  mounted () {
+    this.diary = this.$route.params.diary
   },
   methods: {
 

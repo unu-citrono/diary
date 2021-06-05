@@ -1,7 +1,8 @@
 <template>
   <div>
+    <!-- <my-header></my-header> -->
     <div class="background">
-       <img :src="imgSrc" width="100%" height="100%" alt="" />
+      <img :src="imgSrc" width="100%" height="100%" alt="" />
     </div>
     <div class="login">
       <el-form ref="form" :rules="rules" :model="form" label-width="80px" class="form">
@@ -44,9 +45,13 @@
 
 <script>
 import router from '@/router'
+import MyHeader from '@/components/header.vue'
 import { mapMutations } from 'vuex'
 import { login } from '@/api/api.js'
   export default {
+    components: {
+      MyHeader
+    },
     data() {
       return {
         dialogFormVisible: false,
@@ -90,18 +95,15 @@ import { login } from '@/api/api.js'
                 _this.userId = res.data.result.userId
                 // 将用户token保存到vuex中
                 _this.changeLogin({ Authorization: _this.userToken, userId: _this.userId })
+                // location.reload()
                 // 跳转路由
-                this.$router.push({name: 'Home'})
-                this.$router.go(0)
+                this.$router.push({name: 'UserHome'})
                 this.$message({
                   message: '登录成功',
                   type: 'success'
                 })
               } else {
-                this.$message({
-                  message: '用户名或密码错误',
-                  type: 'success'
-                })
+                this.$message.error('用户名或密码错误')
               }
              
             }).catch(error => {

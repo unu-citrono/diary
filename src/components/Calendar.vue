@@ -1,15 +1,17 @@
 <template>
-  <div class="about">
+  <div id="calendar">
       <div class="content">
         <!--标题-->
         <p class="titleP">日记记录</p>
-        <p class="cardsp">
-          <i class="el-icon-time"></i>
-          <span class="spantwo">今天是</span>
-          <span class="strong-tip">{{Today}} </span>
-          <!-- <span class="spantwo">本月写日记</span>
-          <span class="strong-tip">{{cardsnum}}次</span> -->
-          <!-- <el-button type="primary" style="margin-left: 15px;" @click="SupplyPunchFn">写日记</el-button> -->
+        <p class="today">
+          <i class="el-icon-time" style="color: #999"></i>
+          <span class="tip">今天是</span>
+          <span class="strong-tip">{{Today}}</span>
+        </p>
+        <p class="today">
+          <i class="el-icon-document" style="color: #999"></i>
+          <span class="tip">本月共写下</span>
+          <span class="strong-tip">{{diaryCount}}篇日记</span>
         </p>
         <!--日历-->
         <Calendar
@@ -33,21 +35,20 @@ export default {
     return {
       hasYearNot:['2021-05-05'],
       hasYear: [],
-      markDate: ['2021/05/03', '2021/5/7'],
-
+      markDate: [],
+      diaryCount: 0,
       Today: dateFormat('YYYY年mm月dd日', new Date()),//当前日期
-      cardsnum: 0,//当前打卡次数
-      cardsradio: '2'
     }
   },
   mounted() {
-    var that = this
     // 获取当前用户日记
-    getDiary().then(function(res) {
-      that.diaryList = res.data.result.diaryList
-      that.markDate = []
-      that.diaryList.forEach((item) => {
-        that.markDate.push(item.createTime.substr(0, 10))
+    getDiary().then(res => {
+      let list = res.data.result.diaryList
+      this.markDate = []
+      let str = dateFormat('YYYY/mm', new Date())
+      list.forEach((item) => {
+        this.markDate.push(item.createTime.substr(0, 10))
+        if(item.createTime.substr(0,7) == str) this.diaryCount++;
       })
     }).catch(function (error) {
       console.log(error)
@@ -105,54 +106,56 @@ export default {
   text-align: center;
 } */
 
-.content{
+#calendar .content{
   /* padding: 15px; */
   text-align: left;
 }
 
-.cardsp{
+#calendar .today{
   height: 28px;
   line-height: 28px;
   position: relative;
   padding-left: 15px;
   margin-bottom: 15px;
 }
-.cardsp img{
+/* #calendar .today img{
   position: absolute;
   top: 7px;
-}
-.cardsp .spantwo{
+} */
+/* #calendar .today .spantwo{
   margin-left: 5px;
-}
-.cardsp .spanthere{
+} */
+/* .today .spanthere{
   margin-left: 15px;
-}
-.circular{
+} */
+/* .circular{
   display: inline-block;
-  /*width: 12px;*/
-  /*height: 12px;*/
   border: 5px solid #136aa7;
   border-radius: 50%;
+} */
+#calendar .tip {
+  /* font-size: 13px;*/
+  color: #999;
+  margin-left: 8px; 
 }
-
-.strong-tip {
+#calendar .strong-tip {
   font-weight: bold;
   color: #409EFF;
 }
-.titleP{
+#calendar .titleP{
   height: 14px;
   line-height: 14px;
   font-size: 14px;
   font-weight: bold;
   border-left: 3px solid #136aa7;
   padding-left: 12px;
-  position: relative;
+  /* position: relative; */
   margin-bottom: 15px;
 }
-.title{
-  /* background-color: #2fd85e; */
+/* .title{
+  background-color: #2fd85e;
   font-size: 16px;
-}
+} */
 .div {
   margin: auto;
   width: 220px;

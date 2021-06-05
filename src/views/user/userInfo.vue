@@ -67,8 +67,8 @@ export default {
         email: '',
         phoneNum: ''
       },
-      // avatar: '/api/avatar/' + localStorage.getItem('userId') + '.jpg'
-      avatar: localStorage.getItem('avatar'),
+      avatar: '/api/avatar/' + localStorage.getItem('userId') + '.jpg',
+      // avatar: localStorage.getItem('avatar'),
       showPwd: false,
       newPwd: ''
     }

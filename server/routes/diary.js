@@ -3,6 +3,8 @@ var router = express.Router() // 拿到express框架的路由
 var mongoose = require('mongoose')
 var Diary = require('../models/diary')
 var User = require('../models/user')
+var path = require('path')
+var fs = require('fs')
 const formidable = require('formidable')
 
 // // 链接MongoDB数据库
@@ -23,26 +25,23 @@ const formidable = require('formidable')
 // 	console.log("MongoDB connected disconnected.")
 // })
 
-// 查询日记
-router.get('/diaryList', function(req, res, next) {
-  var userId = process.env.userId
-  var param = req.query.diaryBook ? {
-		'userId': mongoose.Types.ObjectId(userId),
-    // 'diaryBook': req.query.diaryBook
-  } : { 'userId': mongoose.Types.ObjectId(userId) }
-  // var param = {
-	// 	'userId': mongoose.Types.ObjectId(req.query.userId)
-  //   // '_id': mongoose.Types.ObjectId('609629c780c61eb386d6d5a6')
-	// }
-  Diary.find(param, function(err, result) {
+// 按照用户id查询日记
+router.get('/diaryList', function(req, res, next) {  
+  let userId = req.query.userId ? req.query.userId : process.env.userId
+  let param = req.query.diaryBook ? {
+    userId: mongoose.Types.ObjectId(userId),
+    diaryBook: req.query.diaryBook
+  } : { userId: mongoose.Types.ObjectId(userId) }
+  console.log(req.query)
+  console.log(param)
+  if(req.query.viewLimit === '2') param.viewLimit = '2'
+  Diary.find(param).sort({'createTime': -1}).exec(function(err, result) {
     if (err) {
-      // console.log(err)
       res.json({
         status: "1",
         msg: err.message
       })
     } else {
-      // console.log(result)
       if (result) {
         res.json({
 					status: '200',
@@ -56,6 +55,94 @@ router.get('/diaryList', function(req, res, next) {
   })
 })
 
+// 查询所有日记
+router.get('/allDiary', function(req, res, next) {
+  Diary.find().sort({'createTime': -1}).exec(function(err, result) {
+    if (err) {
+      res.json({
+        status: "1",
+        msg: err.message
+      })
+    } else {
+      if (result) {
+        res.json({
+					status: '200',
+					msg: 'success',
+					result:{
+						diaryList: result
+					}
+				})
+      }
+    }
+  })
+})
+
+// 模糊查询
+router.get('/search', function(req, res, next) {
+  let regexp = new RegExp(req.query.keyword,'i')
+  Diary.find({
+    $or: [
+      {title: {$regex: regexp}}
+      // {content: {$regex: regexp}}
+    ]}, function(err, result) {
+      if (err) {
+        res.json({
+          status: "500",
+          msg: err.message
+        })
+      } else {
+        if (result) {
+          res.json({
+            status: '200',
+            msg: 'success',
+            result:{
+              diaryList: result
+            }
+          })
+        }
+      }
+    })
+})
+
+// 查询所有日记数
+router.get('/allDiaryCount', function(req, res, next) {
+  Diary.countDocuments(function(err, result) {
+    if (err) {
+      res.json({
+        status: "500",
+        msg: err.message
+      })
+    } else {
+      res.json({
+        status: '200',
+        result: result
+      })
+    }
+  })
+})
+
+
+// 根据日记本名获取日记数量
+router.get('/diaryCount', function(req, res, next) {
+	let param = {
+		'userId': mongoose.Types.ObjectId(process.env.userId),
+		'diaryBook': req.query.diaryBook
+	}
+	Diary.countDocuments(param, function(err, result) {
+    if (err) {
+      res.json({
+        status: "500",
+        msg: err.message
+      })
+    } else {
+      res.json({
+        status: '200',
+        result: result
+      })
+    }
+  })
+})
+
 // 添加新日记
 router.post('/addDiary', function(req, res, next) {
   var diary = new Diary ({
@@ -64,6 +151,7 @@ router.post('/addDiary', function(req, res, next) {
     diaryBook: req.body.diaryBook,
     viewLimit: req.body.viewLimit,
     createTime: req.body.createTime,
+    mood: req.body.mood,
     userId: mongoose.Types.ObjectId(req.body.userId)
   })
   diary.save(function(err, result) {
@@ -77,70 +165,119 @@ router.post('/addDiary', function(req, res, next) {
         status: "200",
         msg: 'success'
       })
-      // var param = {
-      //   '_id': mongoose.Types.ObjectId(req.body.userId)
-      // }
-      // User.find(param, function(err2, result2) {
-      //   if(err2) {
-      //     res.json({
-      //       status: "1",
-      //       msg: err.message
-      //     })
-      //   } else {
-      //     result.diaryBooks.forEach((item) => {
-      //       if(item.name == req.body.diaryBook) {
-      //         var data = item
-      //         data.counr = data.count + 1
-      //         User.updateOne(param, {diary})
-      //       }
-      //     })
-      //   }
-      // })
+      var param = {
+        '_id': mongoose.Types.ObjectId(req.body.userId),
+        'diaryBooks.name': req.body.diaryBook
+
+      }
     }
   })
 })
 
-// 修改日记内容
-router.post('/editDiary', function(req, res, next) {
-  var param = {
-    '_id': mongoose.Types.ObjectId(req.query.userId)
-  }
+// 上传日记图片
+router.post('/upload', function(req, res, next) {
+  const form = formidable({ multiples: true })
+  form.keepExtensions = true // 保留扩展名
+	form.uploadDir = path.normalize(__dirname + "/../upload/diary")
+	form.parse(req, (err, fileds, files) => {
+		if(err) {
+			res.json({
+				status: "500",
+				msg: err.message
+			})
+		}
+		console.log(files)
+    var name = process.env.userId + new Date().getTime() + ".jpg"
+		var oldpath = files.file.path
+		var newpath = path.normalize(__dirname + "/../upload/diary") + "/" + name
+		fs.rename(oldpath, newpath, function(err) {
+			if(err) {
+				res.json({
+					status: "500",
+					msg: err.message
+				})
+			} else {
+				res.json({
+					status: "200",
+					msg: '上传成功',
+          result: {
+            name: name
+          }
+				})
+			}
+		})
+	})
+})
 
-  Diary.updateOne(param, req.query.data, function(err, result) {
+// 删除服务器图片
+router.put('/delPicture', function(req, res, next) {
+  let removeIds = req.body.ids
+  removeIds.forEach(item => {
+    let path = __dirname + "/../upload/diary/" + item
+    fs.rm(path, err => {
+      if(err) {
+        res.json({
+					status: "500",
+					msg: err.message
+				})
+      } else {
+        res.json({
+					status: "200",
+					msg: '删除成功'
+				})
+      }
+    })
+  })
+  
+})
+
+// 修改日记内容
+router.put('/editDiary', function(req, res, next) {
+  var param = {
+    _id: mongoose.Types.ObjectId(req.body._id)
+  }
+  let data = {
+    title: req.body.title,
+    content: req.body.content,
+    diaryBook: req.body.diaryBook,
+    viewLimit: req.body.viewLimit,
+    createTime: req.body.createTime,
+    mood: req.body.mood,
+  }
+  Diary.updateOne(param, data, function(err, result) {
     if(err) {
       res.json({
         status: "1",
         msg: err.message
       })
     } else {
-      console.log(result)
+      res.json({
+        status: '200',
+        msg: 'success'
+      })
     }
   })
 })
 
-// 上传文件
-router.post('/upload', function(req, res, next) {
-  console.log(req)
-  let form = new formidable.IncomingForm()
-  form.encoding = 'utf-8' // 编码
-  form.keepExtensions = true // 保留扩展名
-  form.uploadDir ='src/assets/images/' //文件存储路径 最后要注意加 '/' 否则会被存在public下
-
-  form.parse(req, (err, fileds ,files) => { // 解析 formData 数据
-    if(err) return next(err) 
-    console.log(fileds)
-    console.log(files)
-    // let username = fileds.name //用户名 用于修改用户头像路径
-    // let oldPath = files.file.path //获取文件路径 ~/public/images/<随机生成的文件名>.<扩展名>
-    // let imgname = files.file.name //前台上传时的文件名 也就是文件原本的名字
-    // let userImgname = imgname.replace(/[^.]+/, username) //把扩展名前的文件名给替换掉
-    // //我这里为了方便存储 统一将文件名改为 <用户名>.jpg
-    // let newPath = path.join(path.dirname(oldPath), userImgname) ;
-    // fs.rename(oldPath, newPath, (err) => {//fs重命名
-    //   if(err) return next(err)
-    //   res.json({ avatar: userImgname })
-    //   })
-  })
+// 删除日记
+router.put('/deleteDiary', function(req, res, next) {
+  let param = {
+		'_id': mongoose.Types.ObjectId(req.body.id)
+	}
+	Diary.deleteOne(param, function(err, result) {
+		if(err){
+			res.json({
+				status: "500",
+				msg: err.message
+			})
+		} else{
+			console.log(result)
+			res.json({
+				status: '200',
+				message: 'success'
+			})
+		}
+	})
 })
 
 module.exports = router

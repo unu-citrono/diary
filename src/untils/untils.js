@@ -17,3 +17,12 @@ export function dateFormat(fmt, date) {
   }     
   return fmt
 }
+
+export function htmlToText(list) {
+  var re = new RegExp('<[^<>]+>','g')
+  list.forEach((item, index) => {
+    var text = item.content.replace(re ,"")
+    list[index].text = text
+  })
+  return list
+}

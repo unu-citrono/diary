@@ -18,7 +18,11 @@ const service = axios.create({
 // 添加请求拦截器，在请求头中加token
 service.interceptors.request.use(
   config => {
-    if (localStorage.getItem('Authorization')) {
+    // console.log(config)
+    if(config.url == '/diary/allDiary' || config.url ==  '/avatar') {
+      console.log('请求拦截器白名单')
+      return config
+    } else if (localStorage.getItem('Authorization')) {
       config.headers.Authorization = localStorage.getItem('Authorization')
     }
     return config
@@ -34,11 +38,11 @@ service.interceptors.response.use(
     // console.log('响应拦截器生效')
     if (res && res.data) {
       let code = res.data.status
-      // console.log(code)
       // 10101是未登录状态码
       if (code === '401') { // 如果是未登录直接踢出去
         console.log('401了')
         localStorage.setItem('Authorization', '')
+        localStorage.setItem('isLogin', false)
         router.push({name: 'Login'})
       }
     }

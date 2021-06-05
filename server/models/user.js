@@ -6,9 +6,18 @@ var userSchema = new Schema({
   'password': String,
   'email': String,
   'phoneNum': String,
+  'gender': String,
+  'followingUSers': Array,
   'diaryBooks': [
     {
       'name': ''
+    }
+  ],
+  'task': [
+    {
+      'content': '',
+      'deadline': '',
+      'status': ''
     }
   ]
 }, { collection: "user" })

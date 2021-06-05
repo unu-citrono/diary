@@ -1,5 +1,6 @@
 import Vue from 'vue'
 import VueRouter from 'vue-router'
+import UserHome from '../views/UserHome.vue'
 import Home from '../views/Home.vue'
 import Login from '../views/user/login.vue'
 
@@ -9,7 +10,18 @@ const routes = [
   {
     path: '/',
     name: 'Home',
-    component: Home
+    component: () => import(/* webpackChunkName: "about" */ '../views/Home.vue')
+  },
+  {
+    path: '/home',
+    name: 'UserHome',
+    component: () => import(/* webpackChunkName: "about" */ '../views/UserHome.vue')
+
+  },
+  {
+    path: '/user',
+    name: 'User',
+    component: () => import(/* webpackChunkName: "about" */ '../views/user/User.vue')
   },
   {
     path: '/login',
@@ -32,10 +44,20 @@ const routes = [
     component: () => import(/* webpackChunkName: "about" */ '../views/EditDiary.vue')
   },
   {
+    path: '/editForm',
+    name: 'EditForm',
+    component: () => import(/* webpackChunkName: "about" */ '../components/EditForm.vue')
+  },
+  {
     path: '/list',
     name: 'DiaryList',
     component: () => import('../views/DiaryList.vue')
-  }
+  },
+  {
+    path: '/follows',
+    name: 'FollowList',
+    component: () => import('../components/FollowUserList.vue')
+  },
 ]
 
 const router = new VueRouter({
@@ -48,7 +70,7 @@ const router = new VueRouter({
 // 使用 router.beforeEach 注册一个全局前置守卫，判断用户是否登陆
 router.beforeEach((to, from, next) => {
   console.log('导航守卫')
-  if (to.path === '/login' || to.path == '/regist') {
+  if (to.path === '/login' || to.path == '/regist' || to.path == '/') {
     console.log('在login或regist')
     next()
   } else {
@@ -56,6 +78,8 @@ router.beforeEach((to, from, next) => {
     console.log(token)
     if (token === 'null' || token === '') {
       console.log('登录失效了')
+      localStorage.setItem('isLogin', false)
+      alert('登录失效')
       next('/login')
     } else {
       next()

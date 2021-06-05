@@ -1,6 +1,18 @@
 <template>
-  <div class="edit">
-    <el-form ref="form" :model="form" label-width="80px">
+  <div id="edit">
+    <el-form ref="form" :rules="rules" :model="form" label-width="80px" class="edit-form">
+      <el-form-item label="今日心情" prop="mood">
+        <el-rate
+          class="edit-rate"
+          v-model="form.mood"
+          :icon-classes="iconClasses"
+          void-icon-class="icon-rate-face-off"
+          :colors="['#99A9BF', '#F7BA2A', '#FF9900']">
+        </el-rate>
+      </el-form-item>
+      <el-form-item label="日记标题" style="display: inline-block" prop="title">
+        <el-input v-model="form.title" maxlength="50" show-word-limit style="width: 720px"></el-input>
+      </el-form-item>
       <el-form-item label="日记属性" style="text-align: left">
         <el-col :span="11">
           <el-select v-model="form.diaryBook" placeholder="请选择日记本">
@@ -19,105 +31,183 @@
           </el-select>
         </el-col>
       </el-form-item>
-      <el-form-item label="日记标题">
-        <el-input type="text" placeholder="请输入日记标题" v-model="form.title" maxlength="40" show-word-limit></el-input>
-      </el-form-item>
-      <el-form-item label="日记内容">
-        <el-input
-          type="textarea"
-          :autosize="{ minRows: 14, maxRows: 16}"
-          maxlength="1000"
-          show-word-limit
-          placeholder="请输入日记内容"
-          v-model="form.content">
-        </el-input>
-      </el-form-item>
-      <el-form-item label="添加图片">
-        <el-upload 
-          style="text-align:left" 
-          action="localhost:3000/diary/upload" 
-          :data="uploadData"
-          :on-success="onSuccess"
-          :before-upload="beforeUpload" 
-          list-type="picture-card" 
-          :auto-upload="false" 
-          accept="image/*"
+      <el-form-item label="日记内容" style="height: 600px" prop="content">
+        <!-- <editor></editor> -->
+        <div class="editor-box">
+          <quill-editor 
+            class="editor"
+            ref="myTextEditor"
+            v-model="form.content"
+            :options="editorOption"
+            @blur="onEditorBlur($event)"
+            @focus="onEditorFocus($event)"
+            @ready="onEditorReady($event)"
+            @change="onEditorChange($event)">
+          </quill-editor>
+        </div>
+        <el-upload
+          class="upload-demo"
+          action="/api/upload"
+          :show-file-list="false"
+          :http-request="upload"
         >
-          <i slot="default" class="el-icon-plus"></i>
-          <div slot="file" slot-scope="{file}">
-            <img
-              class="el-upload-list__item-thumbnail"
-              :src="file.url" alt=""
-            >
-            <span class="el-upload-list__item-actions">
-            <!--  <span
-                class="el-upload-list__item-preview"
-                @click="handlePictureCardPreview(file)"
-              >
-                <i class="el-icon-zoom-in"></i>
-              </span> -->
-              <span
-                v-if="!disabled"
-                class="el-upload-list__item-delete"
-                @click="handleDownload(file)"
-              >
-                <i class="el-icon-download"></i>
-              </span>
-              <span
-                v-if="!disabled"
-                class="el-upload-list__item-delete"
-                @click="handleRemove(file)"
-              >
-                <i class="el-icon-delete"></i>
-              </span>
-            </span>        
-          </div>
+          <el-button >点击上传</el-button>
         </el-upload>
       </el-form-item>
-      <el-form-item>
-        <el-button type="primary" @click="addDairy">添加日记</el-button>
-        <el-button>取消</el-button>
+      <el-form-item style="margin-top:30px">
+        <el-button type="primary" @click="onSubmit" v-if="!this.isEdit">添加日记</el-button>
+        <el-button type="primary" @click="editDiary" v-if="this.isEdit">修改日记</el-button>
+        <el-button @click="showPreview = true" plain class="preView-btn">预览</el-button>
+        <el-button @click="this.$router.push('/')">取消</el-button>
       </el-form-item>
     </el-form>
+    <el-dialog
+      title="日记预览"
+      :visible.sync="showPreview"
+      width="50"
+      center>
+      <!-- <span>需要注意的是内容是默认不居中的</span> -->
+      <div class="preview" v-html="content"></div>
+      <span slot="footer" class="dialog-footer">
+        <!-- <el-button @click="showPreview = false">取 消</el-button> -->
+        <el-button type="primary" @click="showPreview = false">确 定</el-button>
+      </span>
+    </el-dialog>
   </div>
 </template>
 
 <script>
-import router from '@/router'
-// import axios from 'axios'
 import {dateFormat} from '../untils/untils.js'
-import qs from 'qs'
+import { addDiary, editDiary, getDiaryBooks,delPicture } from '@/api/api.js'
+import axios from 'axios'
+import 'quill/dist/quill.core.css'
+import 'quill/dist/quill.snow.css'
+import 'quill/dist/quill.bubble.css'
+import { addQuillTitle } from '@/untils/quill-title.js'
+const toolbarOptions = [
+  ["bold", "italic", "underline", "strike"], // 加粗 斜体 下划线 删除线
+  ["blockquote", "code-block"], // 引用  代码块
+  [{ header: 1 }, { header: 2 }], // 1、2 级标题
+  [{ list: "ordered" }, { list: "bullet" }], // 有序、无序列表
+  [{ script: "sub" }, { script: "super" }], // 上标/下标
+  [{ indent: "-1" }, { indent: "+1" }], // 缩进
+  // [{'direction': 'rtl'}],                         // 文本方向
+  [{ size: ["small", false, "large", "huge"] }], // 字体大小
+  [{ header: [1, 2, 3, 4, 5, 6, false] }], // 标题
+  [{ color: [] }, { background: [] }], // 字体颜色、字体背景颜色
+  [{ font: [] }], // 字体种类
+  [{ align: [] }], // 对齐方式
+  ["clean"], // 清除文本格式
+  ["link", "image"] // 链接、图片、视频
+]
+
+// 获取编辑器中要移除的图片名称数组
+const getRemovImgId = (ids, html) => {
+  let dom = document.createElement('DIV')
+  dom.innerHTML = html
+  const imgDom = dom.getElementsByTagName('img')
+  // const url = window.location.host
+  let arr = []
+  if(imgDom != []) {
+    console.log('no empty')
+    for(let i = 0; i < ids.length; i++){
+      var flag = false
+      var src = 'http://localhost:8080/api/diaryUpload/' + ids[i]
+      for(let j = 0; j < imgDom.length; j++){
+        console.log(src)
+        console.log(imgDom[j].src)
+        if(src == imgDom[j].src) flag = true
+      }
+      console.log(flag)
+      if(!flag) {
+        arr.push(ids[i])
+      }
+    }
+  }
+  else arr = ids
+  return arr
+}
+
 export default {
-  props: ['diaryBooks'],
+  props: ['diary'],
+  components: {
+  },
   data() {
     return {
+      // diaryBooks: this.$route.params.diaryBooks,
+      diaryBooks: [],
       dialogImageUrl: '',
+      isEdit: false,
       dialogVisible: false,
       disabled: false,
-      uploadData:{
-        userId: localStorage.getItem('userId')
-      },
-      form: {
+      pictureIds: [],
+      emptyForm: {
         title: '',
-        content: '',
+        content: null,
+        mood: null,
         diaryBook: '默认笔记本',
         viewLimit: '1'
       },
+      form: {
+        title: '',
+        content: null,
+        mood: null,
+        diaryBook: '默认笔记本',
+        viewLimit: '1'
+      },
+      iconClasses: ['icon-rate-face-1', 'icon-rate-face-2', 'icon-rate-face-3'], // 等同于 { 2: 'icon-rate-face-1', 4: { value: 'icon-rate-face-2', excluded: true }, 5: 'icon-rate-face-3' }
       rules: {
           title: [
             { required: true, message: '请输入日记标题', trigger: 'blur' }
           ],
+          mood: [
+            { required: true, message: '请选择心情指数', trigger: 'blur' }
+          ],
           content: [
             { required: true, message: '请输入日记内容', trigger: 'blur' }
-          ],
-          diaryBook: [
-            { required: true, message: '请选择日记本', trigger: 'change' }
-          ],
-          viewLimit: [
-            { required: true, message: '请选择查看权限', trigger: 'change' }
           ]
+      },
+      content: null,
+      showPreview: false,
+      editorOption: {
+        modules: {
+          toolbar: {
+            container: toolbarOptions,
+            handlers: {
+              'image': function (value) {
+                if (value) {
+                  document.querySelector('.el-upload .el-button').click()
+                } else {
+                  this.quill.format('image', false);
+                }
+              }
+            }
+          } //工具菜单栏配置
+        },
+        placeholder: '请在这里撰写日记内容', //提示
+        readyOnly: false, //是否只读
+        theme: 'snow', //主题 snow/bubble
+        syntax: true, //语法检测
       }
     };
+  },
+  mounted() {
+    addQuillTitle()
+    getDiaryBooks().then(res => {
+        this.diaryBooks = res.data.result.diaryBooks
+      })
+      .catch(function (error) {
+        console.log(error)
+      })
+      if(this.diary){
+        this.form = this.$route.params.diary
+        this.isEdit = true
+      }
+  },
+  computed: {
+    editor() {
+      return this.$refs.myTextEditor.quillEditor;
+    }
   },
   methods: {
     handleRemove(file) {
@@ -144,30 +234,88 @@ export default {
     onSuccess(res) {
       console.log(res)
     },
-    addDairy() {
-      var that = this
-      var params = qs.stringify({
-        'title': that.form.title,
-        'content': that.form.content,
-        'diaryBook': that.form.diaryBook,
-        'viewLimit': that.form.viewLimit,
-        'userId': localStorage.getItem('userId'),
-        'createTime': dateFormat('YYYY/mm/dd HH:MM', new Date())
-      })
-      that.axios.post('/diary/addDiary', params, {
-        headers: {
-          'content-type': 'application/x-www-form-urlencoded'
-        }
-      }).then((response) => {
-        console.log(response)
-        router.push({name: 'Home'})
-        that.$message({
-          message: '创建成功',
-          type: 'success'
+    onSubmit() {
+      let removeIds = getRemovImgId(this.pictureIds, this.form.content)
+      console.log(this.pictureIds)
+      console.log(removeIds)
+      if(removeIds.length != 0) {
+        console.log('执行delpicture')
+        delPicture({ids: removeIds}).then(res => {
+          console.log(res)
+        }).catch(err => {
+          console.log(err)
         })
-        that.$emit('closeEdit', false)
-      }).catch((error) => {
-        console.log(error)
+      }
+      this.$refs['form'].validate((valid => {
+        if(valid){
+          var that = this
+          var params = {
+            'title': that.form.title,
+            'content': that.form.content,
+            'mood': that.form.mood,
+            'diaryBook': that.form.diaryBook,
+            'viewLimit': that.form.viewLimit,
+            'userId': localStorage.getItem('userId'),
+            'createTime': dateFormat('YYYY/mm/dd HH:MM', new Date())
+          }
+          console.log(params)
+          addDiary(params).then(res => {
+            console.log(res)
+            that.$message({
+              message: '创建成功',
+              type: 'success'
+            })
+            this.$router.push('/home')
+          })
+        }
+      }))
+      
+    },
+    editDiary() {
+      editDiary(this.form).then(res => {
+          this.$message({
+            message: '修改成功',
+            type: 'success'
+          })
+          this.$router.push('/home')
+      }).catch(err => {
+        console.log(err)
+      })
+    },
+    // 富文本
+    // 失去焦点
+    onEditorBlur(editor) {},
+    // 获得焦点
+    onEditorFocus(editor) {},
+    // 开始
+    onEditorReady(editor) {},
+    // 值发生变化
+    onEditorChange(editor) {
+      this.content = editor.html
+      // console.log(editor.html)
+      // console.log(editor.text)
+    },
+    // element组件上传成功后返回图片地址在富文本编辑器中显示
+    upload(f){
+      let quill = this.$refs.myTextEditor.quill
+      let length = quill.getSelection().index
+
+      let formData = new FormData()
+      formData.append('file', f.file)
+
+      axios.post('/api/diary/upload', formData, {
+        headers:{
+          "content-type": 'multipart/form-data',
+          'Authorization': localStorage.getItem('Authorization') || ''
+        }
+      }).then(res => {
+        console.log(res)
+        this.pictureIds.push(res.data.result.name)
+        // 插入图片
+        let path = '/api/diaryUpload/' + res.data.result.name
+        quill.insertEmbed(length, 'image', path)
+        // 调整光标到最后
+        quill.setSelection(length + 1)
       })
     }
   }
@@ -175,7 +323,31 @@ export default {
 </script>
 
 <style lang="less">
-.edit {
-  width: 600px;
+#edit {
+  width: 900px;
+  margin: 0 auto;
+  padding: 24px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+}
+#edit .el-upload {
+    display: none;
+}
+#edit .preview {
+  width: 100%;
+  overflow: auto;
+}
+.edit-form {
+  width: 800px;
+  margin: 0 auto;
+}
+.edit-form .el-select {
+  width: 300px;
+}
+.editor {
+  height: 500px;
+}
+.edit-rate {
+  margin-top: 10px;
+  text-align: left;
 }
 </style>
