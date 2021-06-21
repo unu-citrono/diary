@@ -58,6 +58,21 @@ const routes = [
     name: 'FollowList',
     component: () => import('../components/FollowUserList.vue')
   },
+  {
+    path: '/chart',
+    name: 'Chart',
+    component: () => import('../views/mix-chart.vue')
+  },
+  {
+    path: '/admin',
+    name: 'Admin',
+    component: () => import('../views/mix-chart.vue')
+  },
+  {
+    path: '/static',
+    name: 'Static',
+    component: () => import('../views/UserStatic.vue')
+  }
 ]
 
 const router = new VueRouter({

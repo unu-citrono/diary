@@ -21,6 +21,15 @@ export function regist(data) {
   })
 }
 
+// 删除用户
+export function deleteUser(data = {}) {
+  return axios({
+    url: '/user/delete',
+    method: 'put',
+    data: data
+  })
+}
+
 // 查询用户资料
 export function getUserInfo(data = {}) {
   return axios({
@@ -104,6 +113,24 @@ export function getAllDiary(data = {}) {
   })
 }
 
+// 查询某天的日记
+export function getDateDiary(data) {
+  return axios({
+    url: '/diary/dateDiary',
+    method: 'get',
+    params: data
+  })
+}
+
+// 查询一年中所有月份的日记数量
+export function staticDiary(data={}) {
+  return axios({
+    url: '/diary/statDiary',
+    method: 'get',
+    params: data
+  })
+}
+
 // 模糊查询
 export function searchDiary(data) {
   return axios({
@@ -171,6 +198,15 @@ export function addDiary(data) {
 export function editDiary(data) {
   return axios({
     url: '/diary/editDiary',
+    method: 'put',
+    data: data
+  })
+}
+
+// 举报日记
+export function informDiary(data) {
+  return axios({
+    url: '/diary/inform',
     method: 'put',
     data: data
   })
@@ -254,7 +290,7 @@ export function getFollowingUsers(data={}) {
 export function cancelFollow(data={}) {
   return axios({
     url: '/user/cancelFollow',
-    method: 'delete' , // TODO
+    method: 'put',
     data: data
   })
 }

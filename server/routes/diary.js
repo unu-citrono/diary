@@ -32,10 +32,13 @@ router.get('/diaryList', function(req, res, next) {
     userId: mongoose.Types.ObjectId(userId),
     diaryBook: req.query.diaryBook
   } : { userId: mongoose.Types.ObjectId(userId) }
-  console.log(req.query)
-  console.log(param)
+  // console.log(param)
   if(req.query.viewLimit === '2') param.viewLimit = '2'
-  Diary.find(param).sort({'createTime': -1}).exec(function(err, result) {
+  let sort = {}
+  if(req.query.timeSort == '1') sort.createTime = 1
+  else sort.createTime = -1
+  // console.log(sort)
+  Diary.find(param).sort(sort).exec(function(err, result) {
     if (err) {
       res.json({
         status: "1",
@@ -57,7 +60,10 @@ router.get('/diaryList', function(req, res, next) {
 
 // 查询所有日记
 router.get('/allDiary', function(req, res, next) {
-  Diary.find().sort({'createTime': -1}).exec(function(err, result) {
+  let param = {}
+  if(req.query.viewLimit) param.viewLimit = req.query.viewLimit
+  if(req.query.isInform) param.isInform = req.query.isInform
+  Diary.find(param).sort({'createTime': -1}).exec(function(err, result) {
     if (err) {
       res.json({
         status: "1",
@@ -77,14 +83,91 @@ router.get('/allDiary', function(req, res, next) {
   })
 })
 
+// 查询某天的日记
+router.get('/dateDiary', function(req, res, next) {
+  let date = req.query.date
+  let start = date + ' 00:00'
+  let end = date + '23:59'
+  console.log(date)
+  Diary.find({"createTime": {$gte: start, $lte: end }}, function(err, result) {
+    if (err) {
+      res.json({
+        status: "500",
+        msg: err.message
+      })
+    } else {
+      if (result) {
+        res.json({
+          status: '200',
+          msg: 'success',
+          result:{
+            diaryList: result
+          }
+        })
+      }
+    }
+  })
+})
+
+// 查询一年中每月的日记数量
+router.get('/statDiary', function(req, res, next) {
+  let year = req.query.year
+  let month = 12
+  let nowYear = new Date().getFullYear().toString()
+  if(req.query.year == nowYear) {
+    year = nowYear
+    month = new Date().getMonth() + 1
+  }
+  let param = {}
+  if(req.query.userId) param.userId = req.query.userId
+  var countArr = [];
+  (function iterator(i){
+    if(i <= month){
+      let start = i < 10 ? year + '/0' + i +'/' +'01 00:00' : year + '/' + i +'/' +'01 00:00'
+      let end = i < 10 ? year + '/0' + i +'/' +'31 23:59' : year + '/' + i +'/' +'31 23:59'
+      param.createTime = {$gte: start, $lte: end }
+      Diary.countDocuments(param, function(err, result) {
+      // Diary.countDocuments({"createTime": {$gte: start, $lte: end }}, function(err, result) {
+        if (err) {
+         throw err
+        } else {
+          countArr.push(result);
+          iterator(i + 1)
+        }
+      })
+    } else {
+      res.json({
+        status: '200',
+        msg: 'success',
+        result:{
+          countArr: countArr,
+          month: month
+        }
+      })
+    }
+  })(1);
+})
+
+// 查询心情统计信息
+// router.get('/statMood', function(req, res, next) {
+//   let param = {
+//     userId: mongoose.Types.ObjectId(process.env.userId)
+//   }
+  
+// })
+
 // 模糊查询
 router.get('/search', function(req, res, next) {
   let regexp = new RegExp(req.query.keyword,'i')
-  Diary.find({
+  let param = {
     $or: [
-      {title: {$regex: regexp}}
-      // {content: {$regex: regexp}}
-    ]}, function(err, result) {
+      {title: {$regex: regexp}},
+      {content: {$regex: regexp}}
+    ]
+  }
+  if(req.query.userId) param.userId = mongoose.Types.ObjectId(req.query.userId)
+  else param.userId = mongoose.Types.ObjectId(process.env.userId)
+  Diary.find(param, function(err, result) {
       if (err) {
         res.json({
           status: "500",
@@ -142,6 +225,7 @@ router.get('/diaryCount', function(req, res, next) {
     }
   })
 })
+
 
 // 添加新日记
 router.post('/addDiary', function(req, res, next) {
@@ -245,6 +329,33 @@ router.put('/editDiary', function(req, res, next) {
     mood: req.body.mood,
   }
   Diary.updateOne(param, data, function(err, result) {
+    if(err) {
+      res.json({
+        status: "1",
+        msg: err.message
+      })
+    } else {
+      res.json({
+        status: '200',
+        msg: 'success'
+      })
+    }
+  })
+})
+
+// 举报日记
+router.put('/inform', function(req, res, next) {
+  var param = {
+    _id: mongoose.Types.ObjectId(req.body._id)
+  }
+  let data = {
+    type: req.body.informType,
+    content: req.body.informContent ? req.body.informContent : ''
+  }
+  Diary.updateOne(param, {
+    $push: {information: data},
+    isInform: '1'
+  }, function(err, result) {
     if(err) {
       res.json({
         status: "1",

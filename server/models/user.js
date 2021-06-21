@@ -7,7 +7,7 @@ var userSchema = new Schema({
   'email': String,
   'phoneNum': String,
   'gender': String,
-  'followingUSers': Array,
+  'followingUsers': Array,
   'diaryBooks': [
     {
       'name': ''

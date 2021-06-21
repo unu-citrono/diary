@@ -113,20 +113,6 @@ export default {
           }).catch(err => {
             console.log(err)
           })
-          // axios.post('/user/regist', params, {
-          //   headers: {
-          //     'content-type': 'application/x-www-form-urlencoded'
-          //   }
-          // }).then((response) => {
-          //   console.log(response)
-          //   router.push({name: 'Login'})
-          //   this.$message({
-          //     message: '注册成功',
-          //     type: 'success'
-          //   })
-          // }).catch((error) => {
-          //   console.log(error)
-          // })
         } else {
           console.log('error submit!!')
           return false

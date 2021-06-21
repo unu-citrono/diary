@@ -10,7 +10,6 @@
         <el-link type="primary" :underline="false" href='/home'>个人中心</el-link>
       </div>
 
-
       <div class="right-menu" v-if='isLogin'>
         <el-dropdown class="avatar-container right-menu-item hover-effect" trigger="click">
           <div class="avatar-wrapper">
@@ -19,13 +18,13 @@
           </div>
           <el-dropdown-menu slot="dropdown">
               <el-dropdown-item>
-                <el-link href='/user' :underline="false">个人中心</el-link>
+                <el-link href='/admin' :underline="false">全站统计</el-link>
               </el-dropdown-item>
               <el-dropdown-item>
                 <el-link href='/userInfo' :underline="false">个人资料</el-link>
               </el-dropdown-item>
               <el-dropdown-item>
-                <el-link :underline="false">统计</el-link>
+                <el-link  href='/static' :underline="false">个人统计</el-link>
               </el-dropdown-item>
             <el-dropdown-item divided @click.native="logout">
               <span style="display:block;">退出登录</span>
@@ -55,8 +54,14 @@ export default {
       // avatar: localStorage.getItem('avatar')
     }
   },
-  mounted() {
-    console.log(localStorage.getItem('isLogin'))
+  // mounted() {
+  //   console.log(localStorage.getItem('isLogin'))
+  // },
+  watch:{
+    $route(to,from){
+      if(to.path == '/home' || to.path == '/admin') this.isLogin = true
+      else if(to.path == '/login') this.isLogin = false
+    }
   },
   methods: {
     clickLogin () {

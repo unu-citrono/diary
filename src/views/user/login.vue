@@ -97,7 +97,8 @@ import { login } from '@/api/api.js'
                 _this.changeLogin({ Authorization: _this.userToken, userId: _this.userId })
                 // location.reload()
                 // 跳转路由
-                this.$router.push({name: 'UserHome'})
+                if(this.form.userName == 'admin') this.$router.push({name: 'Admin'})
+                else this.$router.push({name: 'UserHome'})
                 this.$message({
                   message: '登录成功',
                   type: 'success'

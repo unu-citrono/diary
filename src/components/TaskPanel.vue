@@ -35,6 +35,7 @@
         </div>
       </div>
     </li>
+    <p v-if="isTaskEmpty" style="color: #999;font-size:13px">暂无任务</p>
   </div>
 </template>
 
@@ -47,10 +48,14 @@ export default {
       isOver: false,
       isModify: false,
       editVisible: false,
+      isTaskEmpty: this.list.length == 0,
       // taskList: this.list,
       modifyInput: ''
     }
   },
+  // mounted() {
+  //   console.log(this.list.length)
+  // },
   methods: {
     onChange (task, index) {
       // console.log(value)
@@ -76,7 +81,7 @@ export default {
     },
     delTask (id, index) {
       deleteTask({_id: id}).then(res => {
-        console.log(res)
+        // console.log(res)
         this.$message({
           message: '删除成功',
           type: 'success'

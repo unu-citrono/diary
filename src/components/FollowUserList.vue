@@ -2,8 +2,8 @@
   <div id="follow-list">
     <el-scrollbar style="height:100%">
       <ul>
-        <li v-for="user in list" :key="user._id">
-          <el-link :underline=false @click="onClick(user._id)">
+        <li v-for="user in list" :key="user.userId">
+          <el-link :underline=false @click="onClick(user.userId)">
             <el-avatar :src='user.avatar' class="avatar"></el-avatar>
             <p class="name">{{user.userName}}</p>
           </el-link>
@@ -37,6 +37,7 @@ export default {
   },
   mounted() {
     let list = []
+    console.log(this.userList)
     this.userList.forEach((item, index) => {
       getUserInfo({userId: item}).then(res => {
         let user = {}
@@ -47,13 +48,15 @@ export default {
       }).catch(err => {
         console.log(err)
       })
-      console.log(list)
+      // console.log(list)
       this.list = list
     })
   },
   methods: {
     onClick (id) {
-
+      // console.log(this.list)
+      // console.log(id)
+      this.$router.push({name: 'User', params: {userId: id}})
     }
   }
 }

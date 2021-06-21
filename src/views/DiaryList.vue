@@ -6,12 +6,6 @@
         <el-button slot="append" icon="el-icon-search" @click="search"></el-button>
       </el-input>
     </div>
-    
-    <!-- <div style="width: 400px">
-      <el-input placeholder="请输入关键字" v-model="searchInput">
-        <el-button slot="append" icon="el-icon-search"></el-button>
-      </el-input>
-    </div> -->
     <diary-list :propList='diaryList'></diary-list>
   </div>
 </template>
@@ -24,6 +18,12 @@ export default {
   components: {
     DiaryList
   },
+  props: {
+    userId: {
+      type: String,
+      default: localStorage.getItem('userId')
+    }
+  },
   data() {
     return {
       diaryList: this.$route.params.list,
@@ -34,8 +34,8 @@ export default {
   },
   methods: {
     search() {
-      searchDiary({'keyword': this.searchInput}).then( res => {
-         var list = res.data.result.diaryList      
+      searchDiary({'keyword': this.searchInput, 'userId': this.userId}).then( res => {
+        var list = res.data.result.diaryList      
         this.diaryList = htmlToText(list)
       }).catch(err => {
         console.log(err)

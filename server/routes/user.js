@@ -6,8 +6,8 @@ var jwt = require('jsonwebtoken')
 var formidable=require('formidable') //上传功能的插件
 var fs = require('fs')
 var path = require('path')
-const multer = require('multer')
-const { listenerCount } = require('../models/user')
+// const multer = require('multer')
+// const { listenerCount } = require('../models/user')
 
 
 // 链接MongoDB数据库
@@ -30,7 +30,6 @@ mongoose.connection.on("disconnected",function(){
 
 // 用户注册
 router.post('/regist', function(req, res, next) {
-	console.log(req.body)
 	var user = new User({
 		'userName': req.body.userName,
 		'password': req.body.password,
@@ -42,7 +41,8 @@ router.post('/regist', function(req, res, next) {
 				imgUrl: "https://fuss10.elemecdn.com/e/5d/4a731a90594a4af544c0c25941171jpeg.jpeg",
 				count: '1'
 			}
-		]
+		],
+		'followingUsers': []
 	})
 	user.save(function(err, result) {
     if(err){
@@ -51,13 +51,22 @@ router.post('/regist', function(req, res, next) {
 					msg: err.message
 			})
 		} else{
-			res.json({
-				status: '200',
-				msg: 'success',
-				result:{
-					// diaryList: result
+			let src = __dirname + "/../upload/avatar/default.jpg"
+			let desc = __dirname + "/../upload/avatar/" +result._id + '.jpg'
+			fs.copyFile(src, desc, function(err) {
+				if(err) {
+					res.json({
+						status: "1",
+						msg: err.message
+					})
+				} else {
+					res.json({
+						status: '200',
+						msg: 'success'
+					})
 				}
 			})
+			
     }
   })
 })
@@ -101,6 +110,35 @@ router.post('/login', function(req, res, next) {
 					})
 				}
 			}
+	})
+})
+
+// 删除用户
+router.put('/delete', function(req, res, next) {
+	if(req.body.userId) {
+		var param = {
+			'_id': mongoose.Types.ObjectId(req.body.userId) 
+		}
+	} else {
+		var param = {
+			'_id': mongoose.Types.ObjectId(process.env.userId) 
+		}
+	}
+	User.deleteOne(param, function(err, result){
+		if(err) {
+			res.json({
+				status: "500",
+				msg: err.message
+			})
+		} else {
+			console.log(result)
+			if(result) {
+				res.json({
+					status: "200",
+					msg: 'success'
+				})
+			}
+		}		
 	})
 })
 
@@ -210,7 +248,6 @@ router.post('/upload', function(req, res, next) {
 				msg: err.message
 			})
 		}
-		// console.log(files)
 	
 		var oldpath = files.file.path
 		var newpath = path.normalize(__dirname + "/../upload/avatar") + "/" + process.env.userId + ".jpg"
@@ -495,7 +532,25 @@ router.get('/followingUsers', function(req, res, next) {
 
 // 取消关注
 router.put('/cancelFollow', function(req, res, next) {
-
+	let param = {
+		'_id': mongoose.Types.ObjectId(process.env.userId)
+	}
+	let userId = req.body.userId
+	User.updateOne(param, {$pull: {
+		'followingUsers': userId
+	}}, function(err, result) {
+		if(err){
+			res.json({
+				status: "500",
+				msg: err.message
+			})
+		} else{
+			res.json({
+				status: '200',
+				message: 'success'
+			})
+		}
+	})
 })
 
 module.exports = router

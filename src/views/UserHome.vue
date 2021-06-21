@@ -1,9 +1,10 @@
 <template>
-  <div>
-    <!-- <my-header></my-header> -->
+  <div  v-loading="loading">
     <div id="user-home">
+      <!-- 日记本和最新日记 -->
       <el-card id="diary">
         <div id="my-diary">
+          <!-- 日记本 -->
           <div>
             <h2 class="diary-title">我的日记本</h2>
             <el-button round class="edit-button" type="primary" icon="el-icon-edit" @click="editDiary">写日记</el-button>
@@ -18,82 +19,81 @@
                     <el-link :underline="false" style="text-align: left" @click="getDiaryListByBook(book.name)">{{book.name}}</el-link>
                     <div class="bottom clearfix">
                       <span class="time">{{book.count}}篇日记</span>
-                      <!-- <el-button type="text" class="button">查看</el-button> -->
                     </div>
                   </div>
                 </el-card>
               </li>
           </div>
         </div>
-     
         <div>
           <h2 class="diary-title">最新日记</h2>
           <div style="clear:both;"></div>
         </div>
         <diary-list :propList='latestDiary' v-if="showLatest"></diary-list>
       </el-card>
-    <div class="right">
-      <div class="show-count">
-        <div>
-          <p>关注用户数</p>
-          <span class="count">{{followIdList.length}}</span>
-          <el-button size="mini" style="margin-left:20px" @click="showFollows = true">查看</el-button>
+      <div class="right">
+        <!-- 统计数字 -->
+        <div class="show-count">
+          <div>
+            <p>关注用户数</p>
+            <span class="count">{{followCount}}</span>
+            <el-button size="mini" style="margin-left:20px" @click="showFollows = true">查看</el-button>
+          </div>
+          <div>
+            <p>日记总数</p>
+            <span class="count">{{diaryCount}}</span>
+            <el-button size="mini" style="margin-left:20px;" @click="showAllDiary">查看</el-button>
+          </div>
         </div>
-        <div>
-          <p>日记总数</p>
-          <span class="count">{{diaryCount}}</span>
-          <el-button size="mini" style="margin-left:20px;">查看</el-button>
-        </div>
+        <calendar :markDate='markDate'></calendar>
+        <task-list style="margin-top: 30px"></task-list>
       </div>
-      <calendar :markDate='markDate'></calendar>
-      <task-list style="margin-top: 30px"></task-list>
+      <!-- 关注用户弹窗 -->
+      <el-dialog
+        title="关注用户"
+        :visible.sync="showFollows"
+        width="30%"
+        center>
+          <follow-user-list :userList='followIdList'></follow-user-list>
+      </el-dialog>
+      <el-dialog
+        title="日记本管理"
+        :visible.sync="showBookOptions"
+        width="40%"
+        center
+        >
+        <div>
+          <el-input class="add-book-input" v-model="newBookName" placeholder="请输入新建日记本名称"></el-input>
+          <el-button size="medium" type="primary" icon="el-icon-circle-plus" plain @click="addDiaryBook">新建</el-button>
+          <el-table :data="diaryBooks" style="width: 100%;margin-top: 15px">
+            <el-table-column prop="name" label="名称" width="180">
+            </el-table-column>
+            <el-table-column prop="count" label="日记数量" width="180">
+            </el-table-column>
+            <el-table-column label="操作">
+              <template slot-scope="scope">
+                <el-popover placement="top" width="280" :ref="scope.$index">
+                  <div class="edit-popover">
+                      <h3>重命名日记本</h3>
+                      <el-input v-model="bookRename" placeholder="请输入新名称"></el-input>
+                      <el-button size="mini" type="text" @click="scope._self.$refs[scope.$index].doClose()">取消</el-button>
+                      <el-button type="primary" size="mini" @click="scope._self.$refs[scope.$index].doClose();handleEdit(scope.$index, scope.row)">确定</el-button>
+                  </div>
+                  <el-button type="text" size="small" slot="reference">编辑</el-button>
+                </el-popover>
+                <el-popconfirm title="确定删除吗？" @confirm='handleDelete(scope.$index, scope.row)'>
+                  <el-button slot="reference" type="danger" size="mini"  style="margin-left:10px">删除</el-button>
+                </el-popconfirm>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
+        <span slot="footer" class="dialog-footer">
+          <!-- <el-button @click="showBookOptions = false">取 消</el-button> -->
+          <el-button type="primary" @click="showBookOptions = false">确 定</el-button>
+        </span>
+      </el-dialog>
     </div>
-    <!-- 关注用户弹窗 -->
-    <el-dialog
-      title="关注用户"
-      :visible.sync="showFollows"
-      width="30%"
-      center>
-        <follow-user-list :userList='followIdList'></follow-user-list>
-    </el-dialog>
-    <el-dialog
-      title="日记本管理"
-      :visible.sync="showBookOptions"
-      width="40%"
-      center
-      >
-      <div>
-        <el-input class="add-book-input" v-model="newBookName" placeholder="请输入新建日记本名称"></el-input>
-        <el-button size="medium" type="primary" icon="el-icon-circle-plus" plain @click="addDiaryBook">新建</el-button>
-        <el-table :data="diaryBooks" style="width: 100%;margin-top: 15px">
-          <el-table-column prop="name" label="名称" width="180">
-          </el-table-column>
-          <el-table-column prop="count" label="日记数量" width="180">
-          </el-table-column>
-          <el-table-column label="操作">
-            <template slot-scope="scope">
-              <el-popover placement="top" width="280" :ref="scope.$index">
-                <div class="edit-popover">
-                    <h3>重命名日记本</h3>
-                    <el-input v-model="bookRename" placeholder="请输入新名称"></el-input>
-                    <el-button size="mini" type="text" @click="scope._self.$refs[scope.$index].doClose()">取消</el-button>
-                    <el-button type="primary" size="mini" @click="scope._self.$refs[scope.$index].doClose();handleEdit(scope.$index, scope.row)">确定</el-button>
-                </div>
-                <el-button type="text" size="small" slot="reference">编辑</el-button>
-            </el-popover>
-              <el-popconfirm title="确定删除吗？" @confirm='handleDelete(scope.$index, scope.row)'>
-                <el-button slot="reference" type="danger" size="mini"  style="margin-left:10px">删除</el-button>
-              </el-popconfirm>
-            </template>
-          </el-table-column>
-        </el-table>
-      </div>
-      <span slot="footer" class="dialog-footer">
-        <!-- <el-button @click="showBookOptions = false">取 消</el-button> -->
-        <el-button type="primary" @click="showBookOptions = false">确 定</el-button>
-      </span>
-    </el-dialog>
-  </div>
   </div>
 
 </template>
@@ -104,6 +104,7 @@ import TaskList from '@/components/TaskList.vue'
 import DiaryList from '@/components/DiaryList.vue'
 import MyHeader from '@/components/header.vue'
 import FollowUserList from '@/components/FollowUserList.vue'
+import { htmlToText } from '@/untils/untils'
 import { getUserInfo, getDiary, getDiaryBooks, getDiaryCount,addDiaryBook, editBook, deleteBook } from '@/api/api.js'
 import router from '@/router'
 export default {
@@ -122,6 +123,7 @@ export default {
       showBookOptions: false,
       showFollows: false,
       showLatest: false,
+      loading: true,
       user: {},
       followCount: 0,
       followIdList: [],
@@ -139,14 +141,16 @@ export default {
   mounted() {
     this.getDiaryBooks()
     getUserInfo().then(res => {
+      // console.log(res)
       this.user = res.data.result
       this.followIdList = this.user.followingUsers 
-      // this.followCount = this.user.followingUsers.length
+      this.followCount = this.user.followingUsers.length
     }).catch(err => {
       console.log(err)
     })
     // 获取最新日记
     getDiary().then(res => {
+        console.log(res)
         var list =  res.data.result.diaryList
         this.diaryCount = list.length  
         var re = new RegExp('<[^<>]+>','g')
@@ -156,6 +160,7 @@ export default {
         })
         this.latestDiary = list
         this.showLatest = true
+        this.loading = false
       })
   },
   
@@ -194,12 +199,7 @@ export default {
     // 获取用户的所有日记  用于展示最新日记
     getDiaryListById () {
       getDiary().then(res => {
-        var list =   res.data.result.diaryList      
-        var re = new RegExp('<[^<>]+>','g')
-        list.forEach((item, index) => {
-          var text = item.content.replace(re ,"")
-          list[index].text = text
-        })
+        let list = htmlToText(res.data.result.diaryList)
         this.latestDiary = list
       })
     },
@@ -233,6 +233,7 @@ export default {
           this.newBookName = ''
         }
       }).catch(err => {
+        console.log(err)
       })
     },
 
@@ -253,6 +254,7 @@ export default {
         }
       })
     },
+    // 删除日记本
     handleDelete(index, row) {
       let param = {
         name: row.name
@@ -265,6 +267,15 @@ export default {
           })
           this.diaryBooks.splice(index, 1)
         }
+      })
+    },
+    // 查看所有日记
+    showAllDiary() {
+      getDiary().then(res => {
+        let list = htmlToText(res.data.result.diaryList)
+        router.push({name: 'DiaryList', params: {list: list, bookName: '全部日记'}})
+      }).catch(err => {
+        console.log(err)
       })
     }
   }
@@ -295,7 +306,7 @@ export default {
 
 #diary-books {  // 日记本列表
   display: flex;
-  justify-content: space-between;
+  // justify-content: space-between;
   flex-wrap: wrap;
   margin-top: 20px;
 

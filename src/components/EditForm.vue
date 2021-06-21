@@ -55,12 +55,14 @@
         </el-upload>
       </el-form-item>
       <el-form-item style="margin-top:30px">
-        <el-button type="primary" @click="onSubmit" v-if="!this.isEdit">添加日记</el-button>
+        <el-button type="primary" @click="formCheck" v-if="!this.isEdit">添加日记</el-button>
         <el-button type="primary" @click="editDiary" v-if="this.isEdit">修改日记</el-button>
         <el-button @click="showPreview = true" plain class="preView-btn">预览</el-button>
         <el-button @click="this.$router.push('/')">取消</el-button>
       </el-form-item>
     </el-form>
+
+    <!-- 日记预览 -->
     <el-dialog
       title="日记预览"
       :visible.sync="showPreview"
@@ -73,6 +75,19 @@
         <el-button type="primary" @click="showPreview = false">确 定</el-button>
       </span>
     </el-dialog>
+
+    <!-- 敏感词提示 -->
+    <el-dialog
+      title="提示"
+      :visible.sync="showBadWordTip"
+      width="30%"
+      center>
+      <span>您的日记中含有违规词汇，已使用 * 代替，是否继续提交？</span>
+      <span slot="footer" class="dialog-footer">
+        <el-button type="primary" @click="submitDiary">确 定</el-button>
+        <el-button @click="showBadWordTip = false">去修改</el-button>
+      </span>
+    </el-dialog>
   </div>
 </template>
 
@@ -83,7 +98,9 @@ import axios from 'axios'
 import 'quill/dist/quill.core.css'
 import 'quill/dist/quill.snow.css'
 import 'quill/dist/quill.bubble.css'
+import { getBadWord } from '@/untils/badword.js'
 import { addQuillTitle } from '@/untils/quill-title.js'
+// 富文本编辑器工具栏
 const toolbarOptions = [
   ["bold", "italic", "underline", "strike"], // 加粗 斜体 下划线 删除线
   ["blockquote", "code-block"], // 引用  代码块
@@ -128,6 +145,8 @@ const getRemovImgId = (ids, html) => {
   return arr
 }
 
+
+
 export default {
   props: ['diary'],
   components: {
@@ -136,6 +155,7 @@ export default {
     return {
       // diaryBooks: this.$route.params.diaryBooks,
       diaryBooks: [],
+      showBadWordTip: false,
       dialogImageUrl: '',
       isEdit: false,
       dialogVisible: false,
@@ -234,10 +254,10 @@ export default {
     onSuccess(res) {
       console.log(res)
     },
-    onSubmit() {
+    formCheck() {
       let removeIds = getRemovImgId(this.pictureIds, this.form.content)
-      console.log(this.pictureIds)
-      console.log(removeIds)
+      // console.log(this.pictureIds)
+      // console.log(removeIds)
       if(removeIds.length != 0) {
         console.log('执行delpicture')
         delPicture({ids: removeIds}).then(res => {
@@ -248,29 +268,50 @@ export default {
       }
       this.$refs['form'].validate((valid => {
         if(valid){
-          var that = this
-          var params = {
-            'title': that.form.title,
-            'content': that.form.content,
-            'mood': that.form.mood,
-            'diaryBook': that.form.diaryBook,
-            'viewLimit': that.form.viewLimit,
-            'userId': localStorage.getItem('userId'),
-            'createTime': dateFormat('YYYY/mm/dd HH:MM', new Date())
+          let isHaveBad = false
+          // 获取敏感词汇
+          let badWord = getBadWord()
+          for(var i = 0; i < badWord.length; i++) {
+            var r = new RegExp(badWord[i], "ig")
+            // 利用标志位判断是否含有敏感词汇
+            if(r.test(this.form.content)) {
+              isHaveBad = true
+              this.form.content = this.form.content.replace(r, '*')
+            }
+            if(r.test(this.form.title)) {
+              isHaveBad = true
+              this.form.title = this.form.title.replace(r, '*')
+            }
           }
-          console.log(params)
-          addDiary(params).then(res => {
-            console.log(res)
-            that.$message({
-              message: '创建成功',
-              type: 'success'
-            })
-            this.$router.push('/home')
-          })
+          if(isHaveBad) {
+            this.showBadWordTip = true
+          } else {
+            this.submitDiary()
+          }
         }
       }))
-      
     },
+    // 提交日记到数据库
+    submitDiary() {
+      var that = this
+      var params = {
+        'title': that.form.title,
+        'content': that.form.content,
+        'mood': that.form.mood,
+        'diaryBook': that.form.diaryBook,
+        'viewLimit': that.form.viewLimit,
+        'userId': localStorage.getItem('userId'),
+        'createTime': dateFormat('YYYY/mm/dd HH:MM', new Date())
+      }
+      addDiary(params).then(res => {
+        that.$message({
+          message: '创建成功',
+          type: 'success'
+        })
+        this.$router.push('/home')
+      })
+    },
+    // 修改日记
     editDiary() {
       editDiary(this.form).then(res => {
           this.$message({

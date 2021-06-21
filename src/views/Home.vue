@@ -1,5 +1,5 @@
 <template>
-  <div id="home">
+  <div id="home" v-loading="loading">
     <el-card id="home-diary-card">
       <p class="titleP">今天是{{today}}</p>
       <p class="titleP">共有{{userCount}}人写下{{diaryCount}}篇日记</p>
@@ -29,6 +29,7 @@ export default {
   },
   data() {
     return {
+      loading: true,
       diaryList: [],
       currentList: [],
       today: dateFormat('YYYY年mm月dd日', new Date()),
@@ -40,9 +41,9 @@ export default {
   },
   mounted() {
     // console.log(this.DiaryItem)
-    getAllDiary().then(res => {
-      console.log(res)
-      var list =   res.data.result.diaryList      
+    getAllDiary({viewLimit: '2'}).then(res => {
+      // console.log(res)
+      var list =   res.data.result.diaryList   
         var re = new RegExp('<[^<>]+>','g')
         list.forEach((item, index) => {
           var text = item.content.replace(re ,"")
@@ -50,13 +51,12 @@ export default {
         })
       this.diaryList =list
       this.currentList = this.diaryList.slice(0, 10)
+      this.loading = false
     }) 
     getAllDiaryCount().then(res => {
-      console.log(res)
       this.diaryCount = res.data.result
     })
     getUserCount().then(res => {
-      console.log(res)
       this.userCount = res.data.result
     }) 
     

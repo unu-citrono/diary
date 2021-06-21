@@ -7,7 +7,7 @@
           <p>{{user.userName}}</p>
         </div>
         <el-button type="primary" size="mini" style="margin-left:20px" @click="followUser" v-if="!isFollow">关注</el-button>
-        <el-button type="primary" size="mini" style="margin-left:20px" @click="followUser" v-if="isFollow" disabled>已关注</el-button>
+        <el-button type="danger" size="mini" style="margin-left:20px" @click="cancelFollow" v-if="isFollow" >取消关注</el-button>
       </div>
       <div>
         <div class="user-books">
@@ -29,6 +29,7 @@
               <i class="el-icon-date"></i>
               <span>{{task.content}}</span>
             </li>
+            <p v-if="isTaskEmpty" style="color: #999;font-size:13px">此人暂无任务</p>
           </ul>
         </div>
       </div>
@@ -49,7 +50,7 @@
 import TaskList from '@/components/TaskList.vue'
 import DiaryList from '@/components/DiaryList.vue'
 import {htmlToText} from '@/untils/untils.js'
-import { getUserInfo, getDiary, followUSer, searchDiary } from '@/api/api.js'
+import { getUserInfo, getDiary, followUSer, searchDiary, cancelFollow } from '@/api/api.js'
 export default {
   components: {
     TaskList,
@@ -58,6 +59,7 @@ export default {
   data() {
     return {
       isFollow: false,
+      isTaskEmpty: false,
       userId: '',
       avatar: '',
       user: {},
@@ -72,6 +74,7 @@ export default {
     // 获取当前查看用户d的信息
     getUserInfo({userId: this.userId}).then(res => {
       this.user = res.data.result
+      this.isTaskEmpty = (this.user.task.length == 0)
     }).catch(err => {
       console.log(err)
     })
@@ -87,7 +90,7 @@ export default {
     })
     // 获取当前用户的开放日记
     getDiary({userId: this.userId,viewLimit: '2'}).then(res => {
-      console.log(res)
+      // console.log(res)
         var list = res.data.result.diaryList
         this.diaryList = htmlToText(list)
         this.showDiary = false
@@ -108,6 +111,21 @@ export default {
         this.isFollow = true
       })
     },
+    // 取消关注
+    cancelFollow() {
+      let param = {
+        userId: this.userId
+      }
+      cancelFollow(param).then(res => {
+        this.$message({
+          message: '取消关注成功',
+          type: 'success'
+        })
+        this.isFollow = false
+      }).catch(err => {
+        console.log(err)
+      })
+    },
     // 根据日记本获取日记
     getDiaryByBook (name) {
       getDiary({'userId': this.userId,'diaryBook': name}).then( res => {
@@ -121,7 +139,7 @@ export default {
       })
     },
     search () {
-      searchDiary({'keyword': this.searchInput}).then( res => {
+      searchDiary({'keyword': this.searchInput, 'userId': this.userId}).then( res => {
         var list =   res.data.result.diaryList    
         this.diaryList = htmlToText(list)
       }).catch(err => {

@@ -8,7 +8,14 @@ var diarySchema = new Schema({
   'viewLimit': String,
   'diaryBook': String,
   'createTime': String,
-  'userId': mongoose.Schema.ObjectId
+  'userId': mongoose.Schema.ObjectId,
+  'isInform': String,
+  'information': [
+    {
+      'type': '',
+      'content': ''
+    }
+  ]
 }, {collection: 'diarydetail'})
 
 // 定义一个user模型，可以根据这个模型调用其API方法。

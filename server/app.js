@@ -14,11 +14,12 @@ app.use('/diaryUpload', express.static('./upload/diary'))
 // 捕获登录状态
 app.use(function(req, res, next) {
   var url = req.url
-  var urlArr = ['/user/login', '/user/regist', '/diary/allDiary', '/avatar', '/user/allUserCount', '/diary/allDiaryCount']
+  var urlArr = ['/user/login', '/user/regist', '/diary/allDiary', '/avatar', '/user/allUserCount', '/diary/allDiaryCount', '/diary/allDiary?viewLimit=2', '/diary/allDiary?isInform=1']
   if (urlArr.indexOf(url) >= 0) {
     next()
     return false
   }
+  // console.log(url.indexOf('/diary/allDiary'))
   // 获取请求头中的的token
   var token =  req.headers['authorization']
   var secretOrPrivateKey = 'my_token'

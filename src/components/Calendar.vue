@@ -18,6 +18,7 @@
           ref="Calendar"
           :markDate="markDate"
           v-on:changeMonth="changeDate"
+          @choseDay='clickDay'
         ></Calendar>
       </div>
   </div>
@@ -26,7 +27,9 @@
 <script>
 import {dateFormat} from '@/untils/untils.js'
 import Calendar from 'vue-calendar-component'
-import { getDiary } from '@/api/api.js'
+import { getDiary, getDateDiary } from '@/api/api.js'
+import { dateZero } from '@/untils/untils'
+import { htmlToText } from '@/untils/untils'
 export default {
   components: {
     Calendar
@@ -74,12 +77,19 @@ export default {
       });
       return flag;
     },
-    
+    // 选中某天
     clickDay(data) {
-      console.log(data); //选中某天
+      let date = dateZero(data)
+      getDateDiary({date: date}).then(res => {
+        let list = htmlToText(res.data.result.diaryList)
+        this.$router.push({name: 'DiaryList', params: {list: list, bookName: date + '的日记'}})
+      }).catch(err => {
+        console.log(err)
+      })
     },
+    // 切换月份
     changeDate(data) {
-      console.log(data); //左右点击切换月份
+      console.log(data)
     },
     clickToday(data) {
       console.log(data); //跳到了本月

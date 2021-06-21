@@ -4,14 +4,14 @@
     <el-button size="small" type="primary" icon='el-icon-circle-plus' plain @click="showAddTask = true" v-if="isSelf"
       style="margin: -10px 0px 10px -140px"
     >添加</el-button>
-    <el-tabs type="border-card">
+    <el-tabs type="border-card" v-if='showTaskList'>
       <el-tab-pane label="全部">
         <task-panel :list="allTaskList" :isSelf='isSelf' @delTask='delTask' @finishTask='finishTask'></task-panel>
       </el-tab-pane>
       <el-tab-pane label="正在进行">
         <task-panel :list="toDoTaskList" :isSelf='isSelf' @delTask='delTask' @finishTask='finishTask'></task-panel>
       </el-tab-pane>
-      <el-tab-pane label="已完成" style="text-decoration:line-through">
+      <el-tab-pane label="已完成">
         <task-panel :list="finishTaskList" @delTask='delTask' :isSelf='isSelf'></task-panel>
       </el-tab-pane>
       <el-tab-pane label="已过期" style="color:#999">
@@ -59,6 +59,8 @@ export default {
   data() {
     return {
       showAddTask: false,
+      showTaskList: false,
+      loading: true,
       form: {
         content: '',
         deadline: ''
@@ -89,8 +91,9 @@ export default {
   },
   mounted() {
     getTaskList().then(res => {
-      // console.log(res.data.result)
       this.classifyTasks(res.data.result)
+      this.showTaskList = false
+      this.showTaskList = true
     }).catch(err => {
       console.log(err)
     })
